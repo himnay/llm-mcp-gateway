@@ -1,0 +1,18 @@
+# Test profile — no Keycloak/Redis/backends required to load the context.
+gateway:
+  security:
+    oauth2:
+      enabled: false
+  rate-limiter:
+    enabled: false
+
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: false
+
+management:
+  tracing:
+    sampling:
+      probability: 0.0

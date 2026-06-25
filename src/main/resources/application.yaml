@@ -1,0 +1,144 @@
+server:
+  port: ${SERVER_PORT:8088}
+
+spring:
+  application:
+    name: llm-mcp-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${MCP_OAUTH2_ISSUER_URI:http://localhost:8180/realms/org-mcp}
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: llm-mcp-gateway
+        protocol: STREAMABLE
+      client:
+        enabled: true
+        initialized: false
+        toolcallback:
+          enabled: false
+        streamable-http:
+          connections:
+            ticket:
+              url: ${TICKET_SERVICE_URL:http://localhost:8081}
+            deployment:
+              url: ${DEPLOYMENT_SERVICE_URL:http://localhost:8082}
+            notification:
+              url: ${NOTIFICATION_SERVICE_URL:http://localhost:8083}
+            hr:
+              url: ${HR_SERVICE_URL:http://localhost:8084}
+            github:
+              url: ${GITHUB_SERVICE_URL:http://localhost:8085}
+            gmail:
+              url: ${GMAIL_SERVICE_URL:http://localhost:8086}
+            travel:
+              url: ${TRAVEL_SERVICE_URL:http://localhost:8087}
+
+# Gateway-level cross-cutting config. Backend connection names above (ticket, deployment, ...)
+# are the keys used everywhere below (oauth2-backends, per-backend overrides, audit logs).
+gateway:
+  security:
+    oauth2:
+      enabled: ${GATEWAY_OAUTH2_ENABLED:true}
+      required-scope: gateway-invoke
+      required-audience: mcp-gateway
+  oauth2:
+    token-uri: ${MCP_OAUTH2_TOKEN_URI:http://localhost:8180/realms/org-mcp/protocol/openid-connect/token}
+    client-id: ${MCP_OAUTH2_CLIENT_ID:llm-mcp-gateway}
+    client-secret: ${MCP_OAUTH2_CLIENT_SECRET:llm-mcp-gateway-secret}
+  # Backend connections that are themselves OAuth2 resource servers and need a Keycloak
+  # client-credentials bearer token instead of the legacy shared static token.
+  oauth2-backends:
+    - deployment
+  static-auth-token: ${MCP_AUTH_TOKEN:}
+  default-user: ${DEFAULT_USER:system}
+  rate-limit-per-minute: 120
+  write-rate-limit-per-minute: 10
+  tool-timeout-seconds: 30
+  max-tool-result-chars: 8000
+  write-tool-keywords:
+    - apply
+    - create
+    - update
+    - delete
+    - send
+    - deploy
+    - trigger
+    - rollback
+    - cancel
+    - remove
+    - approve
+    - assign
+    - reschedule
+  # Per-tool description overrides — refine a backend's generic wording for a specific
+  # workflow without touching the backend. Example (uncomment and adjust):
+  # tool-overrides:
+  #   createIssue:
+  #     description: "Create a GitHub issue. Only use for confirmed bugs, not feature requests."
+  # Derived tools — a new tool name wrapping an existing one with fixed arguments merged into
+  # every call, so agents get a narrower, purpose-built entry point. Example:
+  # derived-tools:
+  #   createBugIssue:
+  #     base-tool: createIssue
+  #     description: "Create a GitHub bug-tracker issue, pre-labelled 'bug'."
+  #     fixed-arguments:
+  #       labels: bug
+
+# PII/secret redaction applied to every tool result before it's capped and returned — see
+# com.org.llm.mcpgateway.guardrail.PiiRedactor for the default pattern catalogue (email,
+# credit-card, SSN, IBAN, IP, phone, API keys, AWS keys, bearer tokens, private keys).
+gateway.pii.enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+      roles: ACTUATOR
+      probes:
+        enabled: true
+  info:
+    git:
+      mode: full
+    build:
+      enabled: true
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: MCP gateway — aggregates ticket/deployment/notification/hr/github/gmail/travel MCP servers behind one Streamable HTTP endpoint
+
+# Resilience4j circuit-breaker/retry defaults are built programmatically in
+# com.org.llm.mcpgateway.config.ResilienceConfig (registries auto-create per-backend
+# instances on first use from that default config — no per-backend YAML needed).
+
+logging:
+  level:
+    com.org.llm.mcpgateway: INFO
+    io.modelcontextprotocol: INFO

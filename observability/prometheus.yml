@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# The gateway runs either on the host (./mvnw spring-boot:run) or as the "gateway" container
+# in docker-compose.yml, which publishes 8088 back to the host — either way Prometheus
+# (always in Docker) reaches it via host.docker.internal.
+scrape_configs:
+  - job_name: 'llm-mcp-gateway'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [ 'host.docker.internal:8088' ]
+        labels: { application: 'llm-mcp-gateway' }

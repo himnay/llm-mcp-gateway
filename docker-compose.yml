@@ -1,0 +1,98 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-gateway-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  tempo:
+    image: grafana/tempo:latest
+    container_name: mcp-gateway-tempo
+    command: [ "-config.file=/etc/tempo.yml" ]
+    restart: unless-stopped
+    ports:
+      - "3200:3200"   # Tempo HTTP API / Grafana query
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP  ← gateway sends traces here
+    volumes:
+      - ./observability/tempo.yml:/etc/tempo.yml:ro
+      - tempo-data:/tmp/tempo
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mcp-gateway-prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mcp-gateway-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"   # http://localhost:3001  (admin / admin)
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - tempo
+  gateway:
+    build:
+      context: .
+    container_name: llm-mcp-gateway
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      # Shared Keycloak — this gateway validates tokens for the *same* org-mcp realm that
+      # mcp-server-deployment-service and llm-mcp-client use, so it must point at that one
+      # Keycloak instance, not a second one. Run it via `../llm-mcp` (docker compose up keycloak)
+      # or point at a shared non-local Keycloak; do not start a second Keycloak here.
+      MCP_OAUTH2_ISSUER_URI: ${MCP_OAUTH2_ISSUER_URI:-http://host.docker.internal:8180/realms/org-mcp}
+      MCP_OAUTH2_TOKEN_URI: ${MCP_OAUTH2_TOKEN_URI:-http://host.docker.internal:8180/realms/org-mcp/protocol/openid-connect/token}
+      MCP_OAUTH2_CLIENT_ID: ${MCP_OAUTH2_CLIENT_ID:-llm-mcp-gateway}
+      MCP_OAUTH2_CLIENT_SECRET: ${MCP_OAUTH2_CLIENT_SECRET:-llm-mcp-gateway-secret}
+      GATEWAY_OAUTH2_ENABLED: ${GATEWAY_OAUTH2_ENABLED:-true}
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
+      # Backend MCP servers — assumed running via `../llm-mcp` (host or its own docker-compose),
+      # reachable from this container via the host.
+      TICKET_SERVICE_URL: ${TICKET_SERVICE_URL:-http://host.docker.internal:8081}
+      DEPLOYMENT_SERVICE_URL: ${DEPLOYMENT_SERVICE_URL:-http://host.docker.internal:8082}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://host.docker.internal:8083}
+      HR_SERVICE_URL: ${HR_SERVICE_URL:-http://host.docker.internal:8084}
+      GITHUB_SERVICE_URL: ${GITHUB_SERVICE_URL:-http://host.docker.internal:8085}
+      GMAIL_SERVICE_URL: ${GMAIL_SERVICE_URL:-http://host.docker.internal:8086}
+      TRAVEL_SERVICE_URL: ${TRAVEL_SERVICE_URL:-http://host.docker.internal:8087}
+    ports:
+      - "8088:8088"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  tempo-data:
+  grafana-data:
