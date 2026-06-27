@@ -15,7 +15,7 @@ import java.util.List;
  * Prometheus. Protected by the same {@code gateway-invoke} scope as {@code /mcp/**}.
  */
 @RestController
-@RequestMapping("/gateway/tools")
+@RequestMapping("/api/v1/gateway/tools")
 @RequiredArgsConstructor
 public class GatewayToolQualityController {
 
