@@ -10,7 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Redis-backed sliding-window rate limiter, keyed per acting user so the limit holds across
+ * Redis-backed fixed tumbling-window rate limiter, keyed per acting user so the limit holds across
  * gateway instances. Fails open on Redis errors — an unavailable Redis must not block MCP
  * traffic, it only loses the rate-limit safety net temporarily.
  */

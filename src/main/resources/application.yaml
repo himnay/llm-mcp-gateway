@@ -177,8 +177,6 @@ app:
         - "(?i)jailbreak"
         - "(?i)developer\\s+mode"
         - "(?i)DAN\\s+mode"
-
-app:
   features:
     rate-limiting-enabled: ${RATE_LIMITING_ENABLED:true}
     oauth2-auth-enabled: ${OAUTH2_AUTH_ENABLED:true}

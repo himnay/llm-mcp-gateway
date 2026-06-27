@@ -3,8 +3,10 @@ package com.org.llm.mcpgateway.security;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.Set;
 
 /**
@@ -41,6 +43,15 @@ public class UrlAllowlistValidator {
         if (host == null || host.isBlank()) {
             throw new IllegalArgumentException(
                     "SSRF | " + fieldName + " has no host component: " + url);
+        }
+        try {
+            InetAddress addr = InetAddress.getByName(host);
+            if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
+                    || addr.isSiteLocalAddress() || addr.isMulticastAddress()) {
+                throw new SecurityException("SSRF: private/reserved IP blocked: " + host);
+            }
+        } catch (UnknownHostException e) {
+            throw new SecurityException("SSRF: unresolvable host: " + host);
         }
         log.debug("SSRF | URL validated: {} = {}", fieldName, url);
     }

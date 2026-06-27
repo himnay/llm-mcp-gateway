@@ -38,6 +38,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 /**
@@ -53,6 +54,8 @@ import java.util.stream.Stream;
 @Primary
 @Component
 public class GatewayToolCallbackProvider implements ToolCallbackProvider {
+
+    private final AtomicReference<ToolCallback[]> toolCallbackCache = new AtomicReference<>();
 
     private final BackendRegistry backendRegistry;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -89,6 +92,22 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
 
     @Override
     public ToolCallback[] getToolCallbacks() {
+        ToolCallback[] cached = toolCallbackCache.get();
+        if (cached != null) return cached;
+        ToolCallback[] fresh = buildToolCallbacks();
+        toolCallbackCache.set(fresh);
+        return fresh;
+    }
+
+    /**
+     * Invalidates the cached tool catalogue. Call this when a backend reconnects or when
+     * the operator posts to {@code POST /gateway/tools/reload}.
+     */
+    public void invalidateCache() {
+        toolCallbackCache.set(null);
+    }
+
+    private ToolCallback[] buildToolCallbacks() {
         SyncMcpToolCallbackProvider delegate = SyncMcpToolCallbackProvider.builder()
                 .mcpClients(backendRegistry.availableClients())
                 .build();
@@ -219,8 +238,7 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
                 Throwable cause = e.getCause();
                 if (cause instanceof CallNotPermittedException) {
                     log.warn("Circuit breaker OPEN for backend {} — returning fallback", backend);
-                    throw new BackendUnavailableException(
-                            "Backend '" + backend + "' is temporarily unavailable (circuit open). Please try again later.");
+                    return "{\"error\":\"Backend '" + backend + "' is temporarily unavailable (circuit open). Please try again later.\"}";
                 }
                 log.error("Tool call failed | backend={} tool={}: {}", backend, toolName,
                         cause != null ? cause.getMessage() : e.getMessage());
