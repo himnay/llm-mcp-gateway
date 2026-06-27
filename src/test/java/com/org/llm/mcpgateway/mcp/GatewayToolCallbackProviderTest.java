@@ -3,8 +3,10 @@ package com.org.llm.mcpgateway.mcp;
 import com.org.llm.mcpgateway.config.GatewayProperties;
 import com.org.llm.mcpgateway.exception.BackendUnavailableException;
 import com.org.llm.mcpgateway.exception.GatewayException;
+import com.org.llm.mcpgateway.guardrail.InjectionGuardProperties;
 import com.org.llm.mcpgateway.guardrail.PiiRedactionProperties;
 import com.org.llm.mcpgateway.guardrail.PiiRedactor;
+import com.org.llm.mcpgateway.guardrail.PromptInjectionGuard;
 import com.org.llm.mcpgateway.web.GatewayRateLimiter;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -31,6 +33,7 @@ class GatewayToolCallbackProviderTest {
     private final GatewayProperties properties = new GatewayProperties();
     private final ToolQualityRegistry toolQualityRegistry = new ToolQualityRegistry(new SimpleMeterRegistry());
     private final PiiRedactor piiRedactor = new PiiRedactor(new PiiRedactionProperties());
+    private final PromptInjectionGuard injectionGuard = new PromptInjectionGuard(new InjectionGuardProperties());
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private GatewayToolCallbackProvider newProvider(CircuitBreakerRegistry cbRegistry, RetryRegistry retryRegistry,
@@ -44,7 +47,7 @@ class GatewayToolCallbackProviderTest {
         when(rateLimiterProvider.getIfAvailable()).thenReturn(rateLimiter);
 
         return new GatewayToolCallbackProvider(backendRegistry, cbRegistry, retryRegistry, properties,
-                new ToolAuditLog(), toolQualityRegistry, piiRedactor, objectMapper, rateLimiterProvider);
+                new ToolAuditLog(), toolQualityRegistry, piiRedactor, injectionGuard, objectMapper, rateLimiterProvider);
     }
 
     private static ToolCallback fakeCallback(String name, java.util.function.Supplier<String> action) {
