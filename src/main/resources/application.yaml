@@ -142,3 +142,46 @@ logging:
   level:
     com.org.llm.mcpgateway: INFO
     io.modelcontextprotocol: INFO
+
+# ── Prompt injection guard ────────────────────────────────────────────────────
+# Applied to incoming MCP tool call arguments to block injection via tool inputs.
+# Add new patterns here without code changes.
+app:
+  security:
+    injection-guard:
+      enabled: ${INJECTION_GUARD_ENABLED:true}
+      block-message: "Tool call rejected: input contains disallowed instructions."
+      patterns:
+        # Instruction override attacks
+        - "(?i)ignore\\s+(?:all\\s+)?(?:previous|prior|above|all)\\s+instructions?"
+        - "(?i)ignore\\s+your\\s+(system\\s+)?prompt"
+        - "(?i)forget\\s+(your|all|previous)\\s+(instructions?|context|training)"
+        - "(?i)disregard\\s+(all|previous|your)\\s+instructions?"
+        - "(?i)override\\s+(the\\s+)?(system|previous|all)\\s+(prompt|instructions?)"
+        # Roleplay / persona hijack
+        - "(?i)you\\s+are\\s+now\\s+(?:DAN|an?\\s+AI\\s+without)"
+        - "(?i)act\\s+as\\s+if\\s+you\\s+(have\\s+no|are\\s+without)\\s+(restrictions?|rules?)"
+        - "(?i)pretend\\s+(you\\s+are|to\\s+be)\\s+"
+        - "(?i)roleplay\\s+as\\s+"
+        - "(?i)simulate\\s+(a|an|the)\\s+.{0,30}(AI|model|assistant|bot)"
+        # System prompt exfiltration
+        - "(?i)(print|reveal|show|output|repeat|display)\\s+(your\\s+)?(system\\s+)?prompt"
+        - "(?i)(print|repeat|show)\\s+(all\\s+)?(your\\s+)?instructions?"
+        - "(?i)what\\s+(are|were)\\s+your\\s+instructions?"
+        # Structural delimiter injection
+        - "(?i)\\[\\s*SYSTEM\\s*\\]"
+        - "(?i)<\\s*system\\s*>"
+        - "(?i)###\\s*(instruction|system|prompt)"
+        - "(?i)```\\s*(system|instructions?)"
+        # Jailbreak keywords
+        - "(?i)jailbreak"
+        - "(?i)developer\\s+mode"
+        - "(?i)DAN\\s+mode"
+
+app:
+  features:
+    rate-limiting-enabled: ${RATE_LIMITING_ENABLED:true}
+    oauth2-auth-enabled: ${OAUTH2_AUTH_ENABLED:true}
+    tool-argument-guard-enabled: ${TOOL_ARG_GUARD_ENABLED:true}
+    audit-logging-enabled: ${AUDIT_LOGGING_ENABLED:true}
+    derived-tools-enabled: ${DERIVED_TOOLS_ENABLED:true}

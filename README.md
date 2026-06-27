@@ -56,6 +56,71 @@ PII/secret redaction (`PiiRedactor`) also scrubs every tool result — emails, S
 API keys, AWS keys, bearer tokens, private key blocks — before it's capped and returned,
 defence-in-depth for backends that don't sanitize their own output.
 
+Prompt injection protection (`PromptInjectionGuard`) guards against indirect injection via MCP
+tool call arguments — every `call(String toolInput)` is checked against a configurable regex
+catalogue before dispatch; matched calls are rejected immediately with a JSON error without
+reaching the backend.
+
+---
+
+## Prompt Injection Security
+
+### Why tool argument injection matters
+
+In an LLM-driven workflow, the LLM generates tool call arguments based on its conversation
+context. If an attacker can poison the context (via a crafted user message or a compromised
+upstream result), the LLM may generate arguments containing injected instructions. Those
+arguments arrive at the MCP gateway before being forwarded to a backend that acts on them.
+
+### Defence layers
+
+**Layer 1 — Tool argument injection guard (`PromptInjectionGuard`)**
+Every `call(String toolInput)` on every `ResilientToolCallback` passes through
+`PromptInjectionGuard.isInputSafe()` before dispatch. If an injection pattern matches, the
+call is rejected immediately with a JSON error — the backend never sees it.
+
+Patterns are externalised in `InjectionGuardProperties`
+(`app.security.injection-guard.patterns`) so new attack signatures can be added in
+configuration without code changes.
+
+**Layer 2 — PII redaction (`PiiRedactor`)**
+Tool results are scanned before being returned to the caller. Detected PII (email, SSN, IBAN,
+API keys, bearer tokens, credit cards) is replaced with typed placeholders.
+
+**Layer 3 — OAuth2 authentication**
+Only callers with a valid Keycloak JWT for the `org-mcp` realm carrying the `gateway-invoke`
+scope and `mcp-gateway` audience may invoke the gateway.
+
+**Layer 4 — Write-tool rate limiting**
+Tools whose name contains action keywords (create, update, delete, deploy, send, etc.) are
+subject to a stricter per-user write-rate limit to slow any automated injection attack chain.
+
+**Layer 5 — SSRF protection (`UrlAllowlistValidator`)**
+Backend MCP server URLs (`TICKET_SERVICE_URL` … `TRAVEL_SERVICE_URL`) are validated at startup by `UrlAllowlistValidator`. Any URL that resolves to a loopback address, link-local range, or private RFC-1918 subnet not explicitly in the allowlist is rejected and the gateway refuses to start. This prevents a misconfigured or injected backend URL from redirecting tool calls to internal infrastructure.
+
+### Enabling / disabling
+
+```yaml
+app:
+  security:
+    injection-guard:
+      enabled: ${INJECTION_GUARD_ENABLED:true}   # set false for local dev/testing only
+```
+
+### Adding new injection patterns
+
+```yaml
+app:
+  security:
+    injection-guard:
+      patterns:
+        - "(?i)your new pattern here"
+```
+
+No code change required. Any value set here replaces the default list entirely.
+
+---
+
 ## Best Practices Applied
 
 | Practice | Status | Notes |
@@ -70,6 +135,7 @@ defence-in-depth for backends that don't sanitize their own output.
 | Audit logging | ✅ | `ToolAuditLog` — every tool call logs user/backend/tool/duration/outcome |
 | Output truncation | ✅ | `OutputSizeCapUtil` caps tool results at `gateway.max-tool-result-chars` |
 | PII/secret redaction | ✅ | `PiiRedactor` scrubs tool results (email/SSN/credit-card/IBAN/IP/phone/API-key/AWS-key/bearer-token/private-key) before capping |
+| Prompt injection guard | ✅ | `PromptInjectionGuard` rejects tool calls whose arguments match injection/jailbreak patterns — config-driven, no code change needed |
 | Tool-quality metrics | ✅ | `ToolQualityRegistry` — call count, success rate, p95 latency per tool, via `GET /gateway/tools/quality` and Micrometer |
 | Derived tools / description overrides | ✅ | `gateway.tool-overrides` / `gateway.derived-tools` — config-driven catalog shaping, no backend changes needed |
 | Centralised error handling | ✅ | `GlobalExceptionHandler` (`@RestControllerAdvice`) — uniform `{status, error, message, details, timestamp}` body for the admin REST API |
@@ -112,6 +178,8 @@ defence-in-depth for backends that don't sanitize their own output.
 | `gateway.max-tool-result-chars` | `8000` | Truncation threshold for tool results |
 | `gateway.pii.enabled` | `true` | PII/secret redaction kill switch |
 | `gateway.pii.patterns` | see `PiiRedactionProperties` | `type -> regex` map; any entry replaces the corresponding default |
+| `INJECTION_GUARD_ENABLED` (`app.security.injection-guard.enabled`) | `true` | Tool argument injection guard kill switch |
+| `app.security.injection-guard.patterns` | see `InjectionGuardProperties` | Regex list; any value replaces the full default list |
 | `gateway.tool-overrides.<tool>.description` | *(none)* | Replace a tool's description for callers, without changing the backend |
 | `gateway.derived-tools.<name>.base-tool` / `.description` / `.fixed-arguments` | *(none)* | Define a new tool wrapping `base-tool` with fixed arguments merged into every call |
 | `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Backing store for the rate limiter |

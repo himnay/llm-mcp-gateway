@@ -6,6 +6,7 @@ import com.org.llm.mcpgateway.config.ToolOverride;
 import com.org.llm.mcpgateway.exception.BackendUnavailableException;
 import com.org.llm.mcpgateway.exception.GatewayException;
 import com.org.llm.mcpgateway.guardrail.PiiRedactor;
+import com.org.llm.mcpgateway.guardrail.PromptInjectionGuard;
 import com.org.llm.mcpgateway.web.GatewayRateLimiter;
 import com.org.llm.mcpgateway.web.RequestContext;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -49,8 +50,8 @@ import java.util.stream.Stream;
  * N servers" into "a server that fronts N servers" for upstream callers.
  */
 @Slf4j
-@Component
 @Primary
+@Component
 public class GatewayToolCallbackProvider implements ToolCallbackProvider {
 
     private final BackendRegistry backendRegistry;
@@ -60,6 +61,7 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
     private final ToolAuditLog auditLog;
     private final ToolQualityRegistry toolQualityRegistry;
     private final PiiRedactor piiRedactor;
+    private final PromptInjectionGuard injectionGuard;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<GatewayRateLimiter> rateLimiterProvider;
 
@@ -70,6 +72,7 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
                                         ToolAuditLog auditLog,
                                         ToolQualityRegistry toolQualityRegistry,
                                         PiiRedactor piiRedactor,
+                                        PromptInjectionGuard injectionGuard,
                                         ObjectMapper objectMapper,
                                         ObjectProvider<GatewayRateLimiter> rateLimiterProvider) {
         this.backendRegistry = backendRegistry;
@@ -79,6 +82,7 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
         this.auditLog = auditLog;
         this.toolQualityRegistry = toolQualityRegistry;
         this.piiRedactor = piiRedactor;
+        this.injectionGuard = injectionGuard;
         this.objectMapper = objectMapper;
         this.rateLimiterProvider = rateLimiterProvider;
     }
@@ -165,11 +169,17 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
 
         @Override
         public String call(String toolInput) {
+            if (!injectionGuard.isInputSafe(toolInput, getToolDefinition().name())) {
+                return injectionGuard.blockResponse();
+            }
             return execute(() -> delegate.call(toolInput));
         }
 
         @Override
         public String call(String toolInput, ToolContext toolContext) {
+            if (!injectionGuard.isInputSafe(toolInput, getToolDefinition().name())) {
+                return injectionGuard.blockResponse();
+            }
             return execute(() -> delegate.call(toolInput, toolContext));
         }
 
