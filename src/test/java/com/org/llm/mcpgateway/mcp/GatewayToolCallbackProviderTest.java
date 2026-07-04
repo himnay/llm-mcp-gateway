@@ -14,6 +14,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
@@ -81,6 +82,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Returns a successful tool call result unchanged when it is under the size cap")
     void successfulCallUnderTheCapIsReturnedUnchanged() {
         GatewayToolCallbackProvider provider = newProvider(freshCircuitBreakerRegistry(), noRetryRegistry(), null);
 
@@ -90,6 +92,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Truncates a successful tool call result that exceeds the size cap")
     void successfulCallOverTheCapIsTruncated() {
         properties.setMaxToolResultChars(15);
         GatewayToolCallbackProvider provider = newProvider(freshCircuitBreakerRegistry(), noRetryRegistry(), null);
@@ -100,6 +103,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Blocks a write tool call when the rate limiter denies the request")
     void writeToolIsBlockedWhenRateLimiterDenies() {
         GatewayRateLimiter rateLimiter = mock(GatewayRateLimiter.class);
         when(rateLimiter.tryAcquire(org.mockito.ArgumentMatchers.startsWith("write:"),
@@ -113,6 +117,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Surfaces an open circuit breaker as a BackendUnavailableException")
     void openCircuitBreakerSurfacesAsBackendUnavailable() {
         CircuitBreakerRegistry cbRegistry = freshCircuitBreakerRegistry();
         // force the "github" breaker open before any call
@@ -128,6 +133,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Propagates a generic tool failure as a GatewayException")
     void genericFailurePropagatesAsGatewayException() {
         GatewayToolCallbackProvider provider = newProvider(freshCircuitBreakerRegistry(), noRetryRegistry(), null);
         ToolCallback wrapped = provider.wrap(fakeCallback("getRepository", () -> {
@@ -140,6 +146,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Retries a transient failure once before the call succeeds")
     void retryRetriesTransientFailureBeforeSucceeding() {
         RetryRegistry retryRegistry = RetryRegistry.of(RetryConfig.custom()
                 .maxAttempts(2)
@@ -161,6 +168,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Redacts PII contained in a tool result before returning it")
     void piiInToolResultIsRedactedBeforeReturning() {
         GatewayToolCallbackProvider provider = newProvider(freshCircuitBreakerRegistry(), noRetryRegistry(), null);
         ToolCallback wrapped = provider.wrap(fakeCallback("getRepository", () -> "contact jane.doe@example.com for access"));
@@ -169,6 +177,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Records a successful call in the tool quality registry")
     void successfulCallIsRecordedInToolQualityRegistry() {
         GatewayToolCallbackProvider provider = newProvider(freshCircuitBreakerRegistry(), noRetryRegistry(), null);
         ToolCallback wrapped = provider.wrap(fakeCallback("getRepository", () -> "ok"));
@@ -183,6 +192,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Description override replaces only the tool's description, leaving the name unchanged")
     void descriptionOverrideReplacesDescriptionOnly() {
         com.org.llm.mcpgateway.config.ToolOverride override = new com.org.llm.mcpgateway.config.ToolOverride();
         override.setDescription("Only use for confirmed bugs, not feature requests.");
@@ -198,6 +208,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Builds a derived tool that merges fixed arguments into the base tool's call input")
     void derivedToolMergesFixedArgumentsIntoBaseToolCall() {
         com.org.llm.mcpgateway.config.DerivedTool derived = new com.org.llm.mcpgateway.config.DerivedTool();
         derived.setBaseTool("createIssue");
@@ -236,6 +247,7 @@ class GatewayToolCallbackProviderTest {
     }
 
     @Test
+    @DisplayName("Skips building a derived tool when its configured base tool does not exist")
     void derivedToolWithUnknownBaseToolIsSkipped() {
         com.org.llm.mcpgateway.config.DerivedTool derived = new com.org.llm.mcpgateway.config.DerivedTool();
         derived.setBaseTool("doesNotExist");

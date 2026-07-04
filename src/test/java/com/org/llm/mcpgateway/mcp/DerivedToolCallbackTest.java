@@ -1,5 +1,6 @@
 package com.org.llm.mcpgateway.mcp;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
@@ -29,6 +30,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Exposes the derived tool's name and description while reusing the base tool's input schema")
     void exposesDerivedNameAndDescriptionWithBaseSchema() {
         DerivedToolCallback derived = new DerivedToolCallback(
                 "createBugIssue", "Creates a bug-labelled issue", baseTool(), Map.of(), objectMapper);
@@ -41,6 +43,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Falls back to the base tool's description when the derived description is blank")
     void blankDescriptionFallsBackToBaseDescription() {
         DerivedToolCallback derived = new DerivedToolCallback(
                 "createBugIssue", " ", baseTool(), Map.of(), objectMapper);
@@ -49,6 +52,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Merges fixed arguments into the call payload sent to the base tool")
     void mergesFixedArgumentsIntoCall() {
         ToolCallback base = baseTool();
         DerivedToolCallback derived = new DerivedToolCallback(
@@ -60,6 +64,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Fixed argument value overrides the caller-supplied value for the same key")
     void fixedArgumentWinsOverCallerValue() {
         ToolCallback base = baseTool();
         DerivedToolCallback derived = new DerivedToolCallback(
@@ -71,6 +76,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Converts empty input into a JSON object containing only the fixed arguments")
     void emptyInputBecomesObjectWithFixedArguments() {
         ToolCallback base = baseTool();
         DerivedToolCallback derived = new DerivedToolCallback(
@@ -82,6 +88,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Forwards non-object JSON input to the base tool unchanged")
     void nonObjectInputForwardedUnchanged() {
         ToolCallback base = baseTool();
         DerivedToolCallback derived = new DerivedToolCallback(
@@ -93,6 +100,7 @@ class DerivedToolCallbackTest {
     }
 
     @Test
+    @DisplayName("Forwards input to the base tool untouched when there are no fixed arguments")
     void noFixedArgumentsForwardsInputUntouched() {
         ToolCallback base = baseTool();
         DerivedToolCallback derived = new DerivedToolCallback(

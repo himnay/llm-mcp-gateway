@@ -1,6 +1,7 @@
 package com.org.llm.mcpgateway.mcp;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -8,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ToolQualityRegistryTest {
 
     @Test
+    @DisplayName("Aggregates call count and success rate per tool across multiple recordings")
     void aggregatesCallCountAndSuccessRatePerTool() {
         ToolQualityRegistry registry = new ToolQualityRegistry(new SimpleMeterRegistry());
 
@@ -24,6 +26,7 @@ class ToolQualityRegistryTest {
     }
 
     @Test
+    @DisplayName("Computes the p95 latency from recent latency samples")
     void computesP95LatencyFromRecentSamples() {
         ToolQualityRegistry registry = new ToolQualityRegistry(new SimpleMeterRegistry());
         for (long ms = 1; ms <= 20; ms++) {
@@ -35,12 +38,14 @@ class ToolQualityRegistryTest {
     }
 
     @Test
+    @DisplayName("Excludes tools with no recorded calls from the snapshot")
     void toolsWithNoCallsAreNotPresentInSnapshot() {
         ToolQualityRegistry registry = new ToolQualityRegistry(new SimpleMeterRegistry());
         assertThat(registry.snapshot()).isEmpty();
     }
 
     @Test
+    @DisplayName("Tracks separate tools' stats independently in the snapshot")
     void separateToolsAreTrackedIndependently() {
         ToolQualityRegistry registry = new ToolQualityRegistry(new SimpleMeterRegistry());
         registry.record("toolA", "backendA", 5, true);

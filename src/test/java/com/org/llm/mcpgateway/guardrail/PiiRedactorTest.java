@@ -1,5 +1,6 @@
 package com.org.llm.mcpgateway.guardrail;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -7,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PiiRedactorTest {
 
     @Test
+    @DisplayName("Redacts an email address found in the text")
     void redactsEmailAddress() {
         PiiRedactor redactor = new PiiRedactor(new PiiRedactionProperties());
         PiiRedactor.Result result = redactor.redact("reach me at jane.doe@example.com please");
@@ -17,6 +19,7 @@ class PiiRedactorTest {
     }
 
     @Test
+    @DisplayName("Redacts multiple PII types (SSN and email) present in the same text")
     void redactsMultipleDetectorTypesInOneText() {
         PiiRedactor redactor = new PiiRedactor(new PiiRedactionProperties());
         PiiRedactor.Result result = redactor.redact("ssn 123-45-6789 email jane@example.com");
@@ -27,6 +30,7 @@ class PiiRedactorTest {
     }
 
     @Test
+    @DisplayName("Leaves text with no PII unchanged")
     void leavesCleanTextUnchanged() {
         PiiRedactor redactor = new PiiRedactor(new PiiRedactionProperties());
         PiiRedactor.Result result = redactor.redact("no sensitive data here");
@@ -37,6 +41,7 @@ class PiiRedactorTest {
     }
 
     @Test
+    @DisplayName("Returns text unchanged when the redactor is disabled")
     void disabledRedactorReturnsTextUnchanged() {
         PiiRedactionProperties properties = new PiiRedactionProperties();
         properties.setEnabled(false);
@@ -49,6 +54,7 @@ class PiiRedactorTest {
     }
 
     @Test
+    @DisplayName("Does not falsely redact a bare digit run as a phone number")
     void bareDigitRunIsNotFalselyRedactedAsPhoneNumber() {
         // Regression: the phone pattern's separators must be mandatory, not optional, or this
         // matches arbitrary 9-13 digit runs (ticket IDs, hashes) commonly seen in tool results.
@@ -60,6 +66,7 @@ class PiiRedactorTest {
     }
 
     @Test
+    @DisplayName("Redacts a formatted phone number")
     void formattedPhoneNumberIsRedacted() {
         PiiRedactor redactor = new PiiRedactor(new PiiRedactionProperties());
         PiiRedactor.Result result = redactor.redact("call me at 555-123-4567 today");
@@ -69,6 +76,7 @@ class PiiRedactorTest {
     }
 
     @Test
+    @DisplayName("Returns null and blank text unchanged without redaction")
     void nullAndBlankTextAreReturnedUnchanged() {
         PiiRedactor redactor = new PiiRedactor(new PiiRedactionProperties());
 

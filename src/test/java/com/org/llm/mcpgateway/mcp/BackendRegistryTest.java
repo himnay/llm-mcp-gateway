@@ -2,6 +2,7 @@ package com.org.llm.mcpgateway.mcp;
 
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
@@ -32,6 +33,7 @@ class BackendRegistryTest {
     }
 
     @Test
+    @DisplayName("Builds the tool-to-backend map from each connected client's own tool catalog")
     void buildsToolToBackendMapFromEachClientsOwnCatalog() {
         McpSyncClient github = mockClient("github", "getRepository", "createIssue");
         McpSyncClient hr = mockClient("hr", "applyLeave");
@@ -49,6 +51,7 @@ class BackendRegistryTest {
     }
 
     @Test
+    @DisplayName("Falls back to the 'unknown' backend for a tool that was never registered")
     void unknownToolFallsBackToUnknownBackend() {
         BackendRegistry registry = new BackendRegistry(providerOf(List.of()));
         registry.connect();
@@ -58,6 +61,7 @@ class BackendRegistryTest {
     }
 
     @Test
+    @DisplayName("Skips an unreachable backend during connect without failing the whole registry")
     void unreachableBackendIsSkippedNotFatal() {
         McpSyncClient broken = mock(McpSyncClient.class);
         when(broken.getClientInfo()).thenReturn(new McpSchema.Implementation("travel", "1.0.0"));
@@ -73,6 +77,7 @@ class BackendRegistryTest {
     }
 
     @Test
+    @DisplayName("Reports a backend as DOWN when its health ping fails")
     void healthPingFailureIsReportedDown() {
         McpSyncClient flaky = mockClient("notification", "sendNotification");
         when(flaky.ping()).thenThrow(new RuntimeException("timeout"));
