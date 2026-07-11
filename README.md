@@ -1,5 +1,7 @@
 # MCP Gateway — `llm-mcp-gateway`
 
+<img src="image/mcp-logo.png" alt="logo" width="80"/>
+
 A single secure front door for the org's MCP (Model Context Protocol) servers. Upstream
 callers — `llm-mcp-client`, an IDE agent, or any other MCP client — connect to **one**
 Streamable HTTP endpoint (`:8088/mcp`); the gateway internally fans out to every backend MCP
