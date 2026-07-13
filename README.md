@@ -585,6 +585,7 @@ backend name is requested, so a new backend connection needs zero Resilience4j c
 its own.
 
 **Circuit breaker defaults:**
+
 <ul>
 
 - Count-based sliding window, size 10
@@ -596,6 +597,7 @@ its own.
 </ul>
 
 **Retry defaults:**
+
 <ul>
 
 - Max 2 attempts, 300ms wait between them
