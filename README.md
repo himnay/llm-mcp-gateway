@@ -42,7 +42,8 @@ can jump straight to the implementation.
 
 ---
 
-## 1. The problem: why MCP traffic needs its own gateway
+<a id="1-the-problem-why-mcp-traffic-needs-its-own-gateway"></a>
+## 1. 🚪 The problem: why MCP traffic needs its own gateway
 
 The Model Context Protocol standardises how an LLM-driven agent discovers and invokes
 *tools* exposed by a server: `tools/list` returns a catalog of tool names, descriptions and
@@ -87,7 +88,8 @@ from whatever `listTools()` returns.
 
 ---
 
-## 2. High-level architecture
+<a id="2-high-level-architecture"></a>
+## 2. 🏗️ High-level architecture
 
 ```mermaid
 flowchart TB
@@ -160,7 +162,8 @@ tools instead of any raw client-side catalog.
 
 ---
 
-## 3. Tool aggregation: how the catalog is built
+<a id="3-tool-aggregation-how-the-catalog-is-built"></a>
+## 3. 🔹 Tool aggregation: how the catalog is built
 
 `BackendRegistry` (`mcp/BackendRegistry.java`) is the piece that turns "seven independent MCP
 servers" into "one merged tool catalog":
@@ -206,7 +209,8 @@ gateway provides.
 
 ---
 
-## 4. Catalog shaping: overrides, derived tools, tool-quality metrics
+<a id="4-catalog-shaping-overrides-derived-tools-tool-quality-metrics"></a>
+## 4. 📈 Catalog shaping: overrides, derived tools, tool-quality metrics
 
 Three further catalog-shaping features exist, each config-driven with no backend changes
 required:
@@ -234,7 +238,8 @@ required:
 
 ---
 
-## 5. Request flow, end to end
+<a id="5-request-flow-end-to-end"></a>
+## 5. 🔹 Request flow, end to end
 
 The sequence below traces one `tools/call` request from `llm-mcp-client` through every guard and
 routing decision described above, assuming OAuth2 is enabled and the target tool is a "write"
@@ -324,7 +329,8 @@ casually:
 
 ---
 
-## 6. Security deep dive
+<a id="6-security-deep-dive"></a>
+## 6. 🔐 Security deep dive
 
 ### 6.1 Inbound OAuth2.1 (who may call the gateway)
 
@@ -529,7 +535,8 @@ which can reject it without the others needing to also catch the same problem:
 
 ---
 
-## 7. Resilience: circuit breakers, retry, timeouts
+<a id="7-resilience-circuit-breakers-retry-timeouts"></a>
+## 7. 🛡️ Resilience: circuit breakers, retry, timeouts
 
 `ResilienceConfig` (`config/ResilienceConfig.java`) builds two Resilience4j registries with a
 single shared default configuration each; `CircuitBreakerRegistry.circuitBreaker(name)` /
@@ -572,7 +579,8 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
 
 ---
 
-## 8. Observability
+<a id="8-observability"></a>
+## 8. 📈 Observability
 
 - **Structured logs** — SLF4J + Lombok `@Slf4j` throughout, with deliberate uppercase tag
   prefixes for grep/alerting: `SECURITY |` (injection guard, SSRF validator),
@@ -602,7 +610,8 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
 
 ---
 
-## 9. Admin / management API
+<a id="9-admin--management-api"></a>
+## 9. 🌐 Admin / management API
 
 Two REST controllers, both mapped under `/api/v1/gateway/**` and protected by the same
 `SCOPE_gateway-invoke` authority as `/mcp/**` (the `GatewaySecurityConfig` security matcher
@@ -624,7 +633,8 @@ tools are reliable) that would otherwise mean querying seven separate services i
 
 ---
 
-## 10. Error handling
+<a id="10-error-handling"></a>
+## 10. ⚠️ Error handling
 
 `GlobalExceptionHandler` (`web/GlobalExceptionHandler.java`), a `@RestControllerAdvice`, gives
 the admin REST API (not the MCP JSON-RPC endpoint, which has its own JSON-RPC error shape) one
@@ -637,7 +647,8 @@ the real cause logged server-side but not leaked to the caller); `IllegalArgumen
 
 ---
 
-## 11. Design patterns used, and where
+<a id="11-design-patterns-used-and-where"></a>
+## 11. 🏗️ Design patterns used, and where
 
 | Pattern | Where | Role |
 |---|---|---|
@@ -652,7 +663,8 @@ the real cause logged server-side but not leaked to the caller); `IllegalArgumen
 
 ---
 
-## 12. Configuration reference
+<a id="12-configuration-reference"></a>
+## 12. 📚 Configuration reference
 
 | Property / Env Var | Default | Description |
 |---|---|---|
@@ -695,7 +707,8 @@ gateway needs (it shares the `org-mcp` realm with the rest of the `llm-mcp` flee
 
 ---
 
-## 13. Running it
+<a id="13-running-it"></a>
+## 13. 🚀 Running it
 
 This gateway expects the backend MCP servers from `../llm-mcp` to be reachable (run them via
 `./mvnw spring-boot:run` per service, or `docker compose up` in that repo) and, if
@@ -716,7 +729,8 @@ The Docker image (see `Dockerfile`) is a multi-stage, layered Spring Boot build
 dedicated non-root `spring:spring` user, and ships its own `HEALTHCHECK` against
 `/actuator/health`.
 
-## 14. curl walkthrough
+<a id="14-curl-walkthrough"></a>
+## 14. 🌐 curl walkthrough
 
 > MCP requests are JSON-RPC 2.0 over the Streamable HTTP endpoint `/mcp`. Replace `$TOKEN` with
 > a Keycloak access token carrying the `gateway-invoke` scope (see `KEYCLOAK_SETUP.md`), or omit
