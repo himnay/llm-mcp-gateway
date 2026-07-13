@@ -58,6 +58,8 @@ because a chat-completions gateway sits *upstream* of the LLM and only sees prom
 An MCP gateway sits *downstream* of the LLM, in the blast radius of whatever the LLM decided to
 do:
 
+<ul>
+
 - **The caller isn't a human typing a prompt — it's an LLM's tool-call decision.** The JSON
   arguments arriving at `tools/call` were synthesized by a model from its own context window.
   If that context was poisoned (a malicious ticket description, a compromised email body, a
@@ -78,6 +80,8 @@ do:
   A `getRepository` or `getEmployeeRecord` tool result may contain emails, API keys, SSNs or
   other secrets that a backend never intended to leak into an LLM's context window (and
   potentially back out through the next indirect-injection loop).
+
+</ul>
 
 `llm-mcp-gateway` is purpose-built for exactly this shape of traffic: it terminates the MCP
 Streamable HTTP session from the caller, revalidates and forwards the *acting user* identity to
@@ -168,6 +172,8 @@ tools instead of any raw client-side catalog.
 `BackendRegistry` (`mcp/BackendRegistry.java`) is the piece that turns "seven independent MCP
 servers" into "one merged tool catalog":
 
+<ul>
+
 - On `@PostConstruct`, it iterates every injected `McpSyncClient` (one per
   `spring.ai.mcp.client.streamable-http.connections.*` entry), calls `client.initialize()` then
   `client.listTools()`.
@@ -185,6 +191,8 @@ servers" into "one merged tool catalog":
 - `backendOf(toolName)` resolves which circuit breaker / retry / audit label a call belongs to,
   falling back to `"unknown"` for a tool the registry never saw (e.g. one registered dynamically
   by a backend after the gateway's startup scan).
+
+</ul>
 
 `GatewayToolCallbackProvider` (`mcp/GatewayToolCallbackProvider.java`) then does the actual
 catalog construction, cached in an `AtomicReference<ToolCallback[]>` and invalidated via
@@ -215,6 +223,8 @@ gateway provides.
 Three further catalog-shaping features exist, each config-driven with no backend changes
 required:
 
+<ul>
+
 - **Description overrides** (`gateway.tool-overrides`, `DescriptionOverrideToolCallback`) —
   replace a backend's generic tool description with workflow-specific wording. The decorator
   rebuilds the `ToolDefinition` with the same name and input schema but a new description;
@@ -235,6 +245,8 @@ required:
   is also recorded as a Micrometer `Timer` tagged `tool`/`backend`/`outcome`
   (`gateway.tool.calls`), so it shows up in Prometheus/Grafana as well as the fast, in-memory
   `GET /api/v1/gateway/tools/quality` endpoint that doesn't need to query a metrics backend.
+
+</ul>
 
 ---
 
@@ -317,6 +329,8 @@ sequenceDiagram
 Two things worth calling out about this flow because they're easy to miss reading the code
 casually:
 
+<ul>
+
 - The injection guard check happens **before** the circuit breaker, retry, rate limiter or
   backend dispatch — a blocked call never consumes a retry attempt, never counts against
   the circuit breaker's failure budget, and never reaches `McpClientSecurityConfig` to
@@ -327,6 +341,8 @@ casually:
   that echoes an internal secret back in a tool result never gets that secret propagated to the
   LLM's context, regardless of whether the backend itself sanitizes its output.
 
+</ul>
+
 ---
 
 <a id="6-security-deep-dive"></a>
@@ -336,6 +352,8 @@ casually:
 
 `GatewaySecurityConfig` (`security/GatewaySecurityConfig.java`) protects `/mcp/**`, `/mcp` and
 `/gateway/**` with a Spring Security OAuth2 resource server:
+
+<ul>
 
 - The `securityMatcher` scopes this filter chain to exactly those paths; every request must
   carry `hasAuthority("SCOPE_" + gateway.security.oauth2.required-scope)` — by default
@@ -354,11 +372,15 @@ casually:
   conditions, so exactly one `SecurityFilterChain` always exists (Spring Boot's own
   authenticate-everything default chain never activates as a silent third option).
 
+</ul>
+
 ### 6.2 Outbound authentication (how the gateway calls backends)
 
 `McpClientSecurityConfig` (`config/McpClientSecurityConfig.java`) attaches one of two
 `Authorization` schemes per outbound backend connection, selected by connection name via
 `gateway.oauth2-backends` (default: `[deployment]`):
+
+<ul>
 
 - **OAuth2 client-credentials** — for backends that are themselves OAuth2 resource servers.
   `KeycloakTokenService` (`security/KeycloakTokenService.java`) fetches and caches a
@@ -366,6 +388,8 @@ casually:
   behind a `ReentrantLock` so concurrent callers don't stampede Keycloak on expiry.
 - **Static shared bearer token** (`gateway.static-auth-token`, bound from `MCP_AUTH_TOKEN`) —
   for every other, legacy backend connection.
+
+</ul>
 
 Either way, `attachRequestMetadata` also forwards the resolved acting user (`X-Acting-User`) and
 correlation id (`X-Request-ID`) from `RequestContext` (a `ThreadLocal` populated by
@@ -382,6 +406,8 @@ easy to over- or under-state what it does.
 of compiled `java.util.regex.Pattern`s, sourced from `InjectionGuardProperties`
 (`app.security.injection-guard.patterns`). Its public surface is small:
 
+<ul>
+
 - `isSafe(String text)` — returns `true` if `enabled` is `false`, or `text` is `null`/blank, or
   no pattern matches; otherwise `false`.
 - `isInputSafe(String toolInput, String toolName)` — same check, plus a `SECURITY`-tagged
@@ -389,6 +415,8 @@ of compiled `java.util.regex.Pattern`s, sourced from `InjectionGuardProperties`
 - `blockResponse()` — returns a fixed JSON body,
   `{"error":"Tool call rejected: input contains disallowed instructions."}` (message
   configurable via `app.security.injection-guard.block-message`).
+
+</ul>
 
 **Where it's wired in:** every `ResilientToolCallback.call(String)` /
 `call(String, ToolContext)` in `GatewayToolCallbackProvider` calls
@@ -414,6 +442,8 @@ All patterns are compiled case-insensitively (`(?i)`). The test suite also confi
 robustness properties worth calling out because they shape how safe this component is to
 operate:
 
+<ul>
+
 - **Benign tool inputs pass through untouched** — `"create a ticket for the login outage"`,
   `"list open pull requests for repo llm-gateway"`, `"schedule deployment of payment-service to
   staging at 6pm"` and similar realistic tool arguments are all confirmed *not* to match any
@@ -426,6 +456,8 @@ operate:
 - **`null`/blank input is always treated as safe**, and the whole guard can be switched off with
   `app.security.injection-guard.enabled=false` (or `INJECTION_GUARD_ENABLED=false`), which is
   intended for local dev/testing only.
+
+</ul>
 
 **What it explicitly does *not* do** (so this section doesn't overstate the guarantee): this is
 a regex denylist over the outbound tool-call argument string, not a semantic classifier or an
@@ -473,6 +505,8 @@ treating this as sufficient on its own.
 Two cooperating components validate every backend MCP server URL **at startup, before any
 connection is attempted**:
 
+<ul>
+
 - `McpBackendUrlValidator` (`security/McpBackendUrlValidator.java`) reads the seven backend URL
   properties directly from the Spring `Environment`
   (`spring.ai.mcp.client.streamable-http.connections.<name>.url`) in a `@PostConstruct` hook.
@@ -481,6 +515,8 @@ connection is attempted**:
   `http` or `https` only; it has a non-blank host; and, after resolving the host via
   `InetAddress.getByName`, that the resolved address is **not** loopback, link-local, site-local
   (RFC 1918 private) or multicast.
+
+</ul>
 
 Any violation throws (`IllegalArgumentException` for malformed input, `SecurityException` for a
 disallowed address class), which fails application startup — this is a fail-fast control, not a
@@ -496,6 +532,8 @@ counter, `INCR`-and-`EXPIRE` on a key of `rl:mcp-gateway:{user}:{epochSecond/60}
 acting user so the limit holds consistently across multiple gateway instances rather than being
 per-process. It is applied at two layers:
 
+<ul>
+
 - **General request rate** — `GatewayAuthContextFilter` enforces `gateway.rate-limit-per-minute`
   (default 120) on every request under `/mcp`, keyed by the resolved acting user, before the
   request even reaches MCP dispatch.
@@ -506,6 +544,8 @@ per-process. It is applied at two layers:
   substring match, case-insensitive). This is specifically meant to slow down an automated
   injection attack chain that got past the guard and is trying to fire off many destructive
   calls quickly.
+
+</ul>
 
 Both call sites **fail open** on a Redis error (caught, logged at `ERROR` with the
 `RATE_LIMIT |` prefix, request allowed) — an unavailable Redis must not block all MCP traffic,
@@ -545,17 +585,25 @@ backend name is requested, so a new backend connection needs zero Resilience4j c
 its own.
 
 **Circuit breaker defaults:**
+<ul>
+
 - Count-based sliding window, size 10
 - Opens at a 50% failure rate, or an 80% "slow call" rate where a call counts as slow past 5s
 - Stays open 30s, then allows 3 trial calls in half-open state
 - Automatic transition from open → half-open (no manual reset needed)
 - Every `Exception` counts as a recordable failure
 
+</ul>
+
 **Retry defaults:**
+<ul>
+
 - Max 2 attempts, 300ms wait between them
 - Retries `IOException` and `RuntimeException`
 - Explicitly does **not** retry `CallNotPermittedException` (a circuit-breaker-open rejection) —
   retrying against an already-open breaker would just waste the retry budget
+
+</ul>
 
 Per-call execution, in `ResilientToolCallback.execute`:
 
@@ -581,6 +629,8 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
 
 <a id="8-observability"></a>
 ## 8. 📈 Observability
+
+<ul>
 
 - **Structured logs** — SLF4J + Lombok `@Slf4j` throughout, with deliberate uppercase tag
   prefixes for grep/alerting: `SECURITY |` (injection guard, SSRF validator),
@@ -608,6 +658,8 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
   any one backend stops responding — this is a genuine dependency health check, not just "is the
   JVM alive."
 
+</ul>
+
 ---
 
 <a id="9-admin--management-api"></a>
@@ -616,6 +668,8 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
 Two REST controllers, both mapped under `/api/v1/gateway/**` and protected by the same
 `SCOPE_gateway-invoke` authority as `/mcp/**` (the `GatewaySecurityConfig` security matcher
 covers `/gateway/**`, which the `/api/v1` prefix falls under):
+
+<ul>
 
 - `GatewayAdminController` (`admin/GatewayAdminController.java`)
   - `GET /api/v1/gateway/backends` — every connected backend's name, `UP`/`DOWN` health, tool
@@ -626,6 +680,8 @@ covers `/gateway/**`, which the `/api/v1` prefix falls under):
   - `GET /api/v1/gateway/tools/quality` — the `ToolQualityRegistry` snapshot described in
     [§4](#4-catalog-shaping-overrides-derived-tools-tool-quality-metrics): call count, success
     rate, p95 latency per tool, sorted by tool name.
+
+</ul>
 
 Both are read-only, "centralized management" views distinct from the MCP protocol endpoint
 itself — the kind of fleet-wide visibility (which backends are up, what do they expose, which
