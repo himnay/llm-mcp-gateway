@@ -56,7 +56,7 @@ gateway:
   # Backend connections that are themselves OAuth2 resource servers and need a Keycloak
   # client-credentials bearer token instead of the legacy shared static token.
   oauth2-backends:
-    - deployment
+  - deployment
   static-auth-token: ${MCP_AUTH_TOKEN:}
   default-user: ${DEFAULT_USER:system}
   rate-limit-per-minute: 120
@@ -64,19 +64,19 @@ gateway:
   tool-timeout-seconds: 30
   max-tool-result-chars: 8000
   write-tool-keywords:
-    - apply
-    - create
-    - update
-    - delete
-    - send
-    - deploy
-    - trigger
-    - rollback
-    - cancel
-    - remove
-    - approve
-    - assign
-    - reschedule
+  - apply
+  - create
+  - update
+  - delete
+  - send
+  - deploy
+  - trigger
+  - rollback
+  - cancel
+  - remove
+  - approve
+  - assign
+  - reschedule
   # Per-tool description overrides — refine a backend's generic wording for a specific
   # workflow without touching the backend. Example (uncomment and adjust):
   # tool-overrides:
@@ -122,13 +122,15 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING:1.0}
-  otlp:
-    tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
   metrics:
     tags:
       application: ${spring.application.name}
 
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
 info:
   app:
     name: ${spring.application.name}
@@ -153,30 +155,30 @@ app:
       block-message: "Tool call rejected: input contains disallowed instructions."
       patterns:
         # Instruction override attacks
-        - "(?i)ignore\\s+(?:all\\s+)?(?:previous|prior|above|all)\\s+instructions?"
-        - "(?i)ignore\\s+your\\s+(system\\s+)?prompt"
-        - "(?i)forget\\s+(your|all|previous)\\s+(instructions?|context|training)"
-        - "(?i)disregard\\s+(all|previous|your)\\s+instructions?"
-        - "(?i)override\\s+(the\\s+)?(system|previous|all)\\s+(prompt|instructions?)"
+      - "(?i)ignore\\s+(?:all\\s+)?(?:previous|prior|above|all)\\s+instructions?"
+      - "(?i)ignore\\s+your\\s+(system\\s+)?prompt"
+      - "(?i)forget\\s+(your|all|previous)\\s+(instructions?|context|training)"
+      - "(?i)disregard\\s+(all|previous|your)\\s+instructions?"
+      - "(?i)override\\s+(the\\s+)?(system|previous|all)\\s+(prompt|instructions?)"
         # Roleplay / persona hijack
-        - "(?i)you\\s+are\\s+now\\s+(?:DAN|an?\\s+AI\\s+without)"
-        - "(?i)act\\s+as\\s+if\\s+you\\s+(have\\s+no|are\\s+without)\\s+(restrictions?|rules?)"
-        - "(?i)pretend\\s+(you\\s+are|to\\s+be)\\s+"
-        - "(?i)roleplay\\s+as\\s+"
-        - "(?i)simulate\\s+(a|an|the)\\s+.{0,30}(AI|model|assistant|bot)"
+      - "(?i)you\\s+are\\s+now\\s+(?:DAN|an?\\s+AI\\s+without)"
+      - "(?i)act\\s+as\\s+if\\s+you\\s+(have\\s+no|are\\s+without)\\s+(restrictions?|rules?)"
+      - "(?i)pretend\\s+(you\\s+are|to\\s+be)\\s+"
+      - "(?i)roleplay\\s+as\\s+"
+      - "(?i)simulate\\s+(a|an|the)\\s+.{0,30}(AI|model|assistant|bot)"
         # System prompt exfiltration
-        - "(?i)(print|reveal|show|output|repeat|display)\\s+(your\\s+)?(system\\s+)?prompt"
-        - "(?i)(print|repeat|show)\\s+(all\\s+)?(your\\s+)?instructions?"
-        - "(?i)what\\s+(are|were)\\s+your\\s+instructions?"
+      - "(?i)(print|reveal|show|output|repeat|display)\\s+(your\\s+)?(system\\s+)?prompt"
+      - "(?i)(print|repeat|show)\\s+(all\\s+)?(your\\s+)?instructions?"
+      - "(?i)what\\s+(are|were)\\s+your\\s+instructions?"
         # Structural delimiter injection
-        - "(?i)\\[\\s*SYSTEM\\s*\\]"
-        - "(?i)<\\s*system\\s*>"
-        - "(?i)###\\s*(instruction|system|prompt)"
-        - "(?i)```\\s*(system|instructions?)"
+      - "(?i)\\[\\s*SYSTEM\\s*\\]"
+      - "(?i)<\\s*system\\s*>"
+      - "(?i)###\\s*(instruction|system|prompt)"
+      - "(?i)```\\s*(system|instructions?)"
         # Jailbreak keywords
-        - "(?i)jailbreak"
-        - "(?i)developer\\s+mode"
-        - "(?i)DAN\\s+mode"
+      - "(?i)jailbreak"
+      - "(?i)developer\\s+mode"
+      - "(?i)DAN\\s+mode"
   features:
     rate-limiting-enabled: ${RATE_LIMITING_ENABLED:true}
     oauth2-auth-enabled: ${OAUTH2_AUTH_ENABLED:true}
