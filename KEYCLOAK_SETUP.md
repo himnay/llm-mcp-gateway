@@ -58,10 +58,10 @@ The gateway needs its own client identity to call `deployment-service` on its ow
 
 ## 4. Wire the URLs
 
-| URL | Used by | Property | Points at |
-|-----|---------|----------|-----------|
-| Issuer URI | This gateway (resource server) | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `.../realms/org-mcp` |
-| Token URI | This gateway (OAuth2 client, calling deployment-service) | `gateway.oauth2.token-uri` | `.../realms/org-mcp/protocol/openid-connect/token` |
+| URL        | Used by                                                  | Property                                               | Points at                                          |
+|------------|----------------------------------------------------------|--------------------------------------------------------|----------------------------------------------------|
+| Issuer URI | This gateway (resource server)                           | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `.../realms/org-mcp`                               |
+| Token URI  | This gateway (OAuth2 client, calling deployment-service) | `gateway.oauth2.token-uri`                             | `.../realms/org-mcp/protocol/openid-connect/token` |
 
 ```yaml
 # application.yaml (defaults shown; override via env vars in docker-compose.yml)
