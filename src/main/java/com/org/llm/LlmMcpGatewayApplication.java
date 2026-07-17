@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 @SpringBootApplication
 @EnableConfigurationProperties(InjectionGuardProperties.class)
-public class LlmMcpGatewayApplication {
+class LlmMcpGatewayApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(LlmMcpGatewayApplication.class, args);
