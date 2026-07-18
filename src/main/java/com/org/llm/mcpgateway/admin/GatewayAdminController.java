@@ -20,8 +20,8 @@ import java.util.Map;
  * {@link com.org.llm.mcpgateway.security.GatewaySecurityConfig}).
  */
 @RestController
-@RequestMapping("/api/v1/gateway/backends")
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/gateway/backends")
 public class GatewayAdminController {
 
     private final BackendRegistry backendRegistry;

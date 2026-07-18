@@ -16,8 +16,8 @@ import java.time.Instant;
  */
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "gateway.rate-limiter", name = "enabled", matchIfMissing = true)
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "gateway.rate-limiter", name = "enabled", matchIfMissing = true)
 public class GatewayRateLimiter {
 
     private static final String KEY_PREFIX = "rl:mcp-gateway:";
