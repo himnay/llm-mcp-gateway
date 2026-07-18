@@ -27,6 +27,7 @@ public class GatewayAdminController {
     private final BackendRegistry backendRegistry;
     private final GatewayToolCallbackProvider toolCallbackProvider;
 
+    /** Lists backends. */
     @GetMapping
     public List<BackendStatus> listBackends() {
         Map<String, String> health = backendRegistry.health();

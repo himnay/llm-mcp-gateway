@@ -20,10 +20,12 @@ public record ApiError(
         List<String> details
 ) {
 
+    /** Returns the of. */
     public static ApiError of(int status, String error, String message, String path) {
         return new ApiError(status, error, message, Instant.now(), path, null);
     }
 
+    /** Returns the of. */
     public static ApiError of(int status, String error, String message, String path, List<String> details) {
         return new ApiError(status, error, message, Instant.now(), path,
                 details != null && !details.isEmpty() ? details : null);

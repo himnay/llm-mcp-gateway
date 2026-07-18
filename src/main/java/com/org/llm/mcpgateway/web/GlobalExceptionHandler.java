@@ -17,6 +17,7 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /** Handles body validation. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleBodyValidation(MethodArgumentNotValidException ex,
                                                          HttpServletRequest req) {
@@ -28,6 +29,7 @@ public class GlobalExceptionHandler {
                 req.getRequestURI(), details);
     }
 
+    /** Handles constraint violation. */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex,
                                                               HttpServletRequest req) {
@@ -39,6 +41,7 @@ public class GlobalExceptionHandler {
                 req.getRequestURI(), details);
     }
 
+    /** Handles backend unavailable. */
     @ExceptionHandler(BackendUnavailableException.class)
     public ResponseEntity<ApiError> handleBackendUnavailable(BackendUnavailableException ex,
                                                              HttpServletRequest req) {
@@ -46,6 +49,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_GATEWAY, "Bad Gateway", ex.getMessage(), req.getRequestURI(), null);
     }
 
+    /** Handles gateway exception. */
     @ExceptionHandler(GatewayException.class)
     public ResponseEntity<ApiError> handleGatewayException(GatewayException ex,
                                                            HttpServletRequest req) {
@@ -54,6 +58,7 @@ public class GlobalExceptionHandler {
                 "An internal error occurred. Please try again.", req.getRequestURI(), null);
     }
 
+    /** Handles bad request. */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleBadRequest(IllegalArgumentException ex,
                                                      HttpServletRequest req) {
@@ -61,6 +66,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), req.getRequestURI(), null);
     }
 
+    /** Handles generic. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest req) {
         log.error("Unhandled exception", ex);

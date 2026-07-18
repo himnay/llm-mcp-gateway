@@ -27,6 +27,7 @@ import java.util.Set;
 @Configuration
 public class McpClientSecurityConfig {
 
+    /** Defines the mcp auth transport customizer bean. */
     @Bean
     public McpClientCustomizer<HttpClientStreamableHttpTransport.Builder> mcpAuthTransportCustomizer(
             GatewayProperties properties, KeycloakTokenService keycloakTokenService) {

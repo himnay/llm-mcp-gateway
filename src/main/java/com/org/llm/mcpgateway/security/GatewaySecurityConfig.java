@@ -39,6 +39,7 @@ public class GatewaySecurityConfig {
 
     private static final String[] PROTECTED_PATHS = {"/mcp/**", "/mcp", "/gateway/**"};
 
+    /** Defines the oauth2 resource server filter chain bean. */
     @Bean
     @ConditionalOnProperty(prefix = "gateway.security.oauth2", name = "enabled", matchIfMissing = true)
     public SecurityFilterChain oauth2ResourceServerFilterChain(
@@ -56,6 +57,7 @@ public class GatewaySecurityConfig {
         return http.build();
     }
 
+    /** Defines the permissive filter chain bean. */
     @Bean
     @ConditionalOnProperty(prefix = "gateway.security.oauth2", name = "enabled", havingValue = "false")
     public SecurityFilterChain permissiveFilterChain(HttpSecurity http) throws Exception {
@@ -66,6 +68,7 @@ public class GatewaySecurityConfig {
         return http.build();
     }
 
+    /** Defines the jwt decoder bean. */
     @Bean
     @ConditionalOnProperty(prefix = "gateway.security.oauth2", name = "enabled", matchIfMissing = true)
     public JwtDecoder jwtDecoder(

@@ -21,6 +21,7 @@ public class GatewayToolQualityController {
 
     private final ToolQualityRegistry toolQualityRegistry;
 
+    /** Returns the quality. */
     @GetMapping("/quality")
     public List<ToolQualityStats> quality() {
         return toolQualityRegistry.snapshot();

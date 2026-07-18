@@ -53,10 +53,12 @@ public class BackendRegistry {
         }
     }
 
+    /** Returns the available clients. */
     public List<McpSyncClient> availableClients() {
         return List.copyOf(clientsByName.values());
     }
 
+    /** Returns the backend names. */
     public Set<String> backendNames() {
         return Set.copyOf(clientsByName.keySet());
     }
@@ -70,6 +72,7 @@ public class BackendRegistry {
         return toolToBackend.getOrDefault(toolName, "unknown");
     }
 
+    /** Returns the tool catalog. */
     public Map<String, List<String>> toolCatalog() {
         Map<String, List<String>> catalog = new LinkedHashMap<>();
         synchronized (toolToBackend) {
@@ -80,6 +83,7 @@ public class BackendRegistry {
         return catalog;
     }
 
+    /** Healths. */
     public Map<String, String> health() {
         Map<String, String> details = new LinkedHashMap<>();
         clientsByName.forEach((name, client) -> {

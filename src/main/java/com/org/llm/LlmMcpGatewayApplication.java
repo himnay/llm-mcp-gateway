@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties(InjectionGuardProperties.class)
 class LlmMcpGatewayApplication {
 
+    /** Application entry point. */
     public static void main(String[] args) {
         SpringApplication.run(LlmMcpGatewayApplication.class, args);
     }

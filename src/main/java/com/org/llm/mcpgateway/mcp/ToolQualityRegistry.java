@@ -35,6 +35,7 @@ public class ToolQualityRegistry {
     private final MeterRegistry meterRegistry;
     private final Map<String, ToolStats> statsByTool = new ConcurrentHashMap<>();
 
+    /** Records. */
     public void record(String tool, String backend, long durationMs, boolean success) {
         statsByTool.computeIfAbsent(tool, t -> new ToolStats(backend)).record(durationMs, success);
         meterRegistry.timer("gateway.tool.calls",
@@ -42,6 +43,7 @@ public class ToolQualityRegistry {
                 .record(durationMs, TimeUnit.MILLISECONDS);
     }
 
+    /** Returns the snapshot. */
     public List<ToolQualityStats> snapshot() {
         return statsByTool.entrySet().stream()
                 .map(e -> e.getValue().toStats(e.getKey()))

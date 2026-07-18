@@ -12,20 +12,24 @@ public final class RequestContext {
     private RequestContext() {
     }
 
+    /** Handles set. */
     public static void set(String user, String correlationId) {
         HOLDER.set(new Ctx(user, correlationId));
     }
 
+    /** Returns the user. */
     public static String user() {
         Ctx c = HOLDER.get();
         return c == null ? null : c.user();
     }
 
+    /** Returns the correlation id. */
     public static String correlationId() {
         Ctx c = HOLDER.get();
         return c == null ? null : c.correlationId();
     }
 
+    /** Clears. */
     public static void clear() {
         HOLDER.remove();
     }

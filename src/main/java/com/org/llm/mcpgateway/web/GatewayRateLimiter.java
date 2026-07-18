@@ -25,6 +25,7 @@ public class GatewayRateLimiter {
 
     private final StringRedisTemplate redis;
 
+    /** Returns the try acquire. */
     public boolean tryAcquire(String user, int limitPerWindow) {
         String key = KEY_PREFIX + user + ":" + (Instant.now().getEpochSecond() / WINDOW_SECONDS);
         try {
