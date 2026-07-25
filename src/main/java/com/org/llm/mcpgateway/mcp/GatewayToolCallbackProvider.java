@@ -237,8 +237,10 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
                 recordOutcome(toolName, user, System.currentTimeMillis() - start, false);
                 Throwable cause = e.getCause();
                 if (cause instanceof CallNotPermittedException) {
-                    log.warn("Circuit breaker OPEN for backend {} — returning fallback", backend);
-                    return "{\"error\":\"Backend '" + backend + "' is temporarily unavailable (circuit open). Please try again later.\"}";
+                    log.warn("Circuit breaker OPEN for backend {} — surfacing as BackendUnavailableException", backend);
+                    throw new BackendUnavailableException(
+                            "Backend '" + backend + "' is temporarily unavailable (circuit open). Please try again later.",
+                            cause);
                 }
                 log.error("Tool call failed | backend={} tool={}: {}", backend, toolName,
                         cause != null ? cause.getMessage() : e.getMessage());
