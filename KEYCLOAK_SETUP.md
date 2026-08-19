@@ -1,4 +1,4 @@
-# OAuth 2.1 Setup for `llm-mcp-gateway` via Keycloak
+# <span style="color:hsl(256,68%,44%)">OAuth 2.1 Setup for `llm-mcp-gateway` via Keycloak</span>
 
 This gateway is both an **OAuth2 resource server** (it validates tokens from callers like
 `llm-mcp-client`) and an **OAuth2 client** (it authenticates itself to `mcp-server-deployment-service`,
@@ -16,7 +16,7 @@ llm-mcp-gateway --(Bearer <JWT>)-->  mcp-server-deployment-service           [re
 issuer that signed them. Do not stand up a second Keycloak for this repo; reuse the one
 started by `../llm-mcp` (`docker compose up -d keycloak`).
 
-## 1. Add a `gateway-invoke` client scope to the shared `org-mcp` realm
+## <span style="color:hsl(307,68%,44%)">1. Add a `gateway-invoke` client scope to the shared `org-mcp` realm</span>
 
 In the Keycloak admin console (http://localhost:8180, `admin`/`admin`):
 
@@ -26,7 +26,7 @@ In the Keycloak admin console (http://localhost:8180, `admin`/`admin`):
    Name: `gateway-audience`. Included Custom Audience: `mcp-gateway`. Add to access token:
    **On**. → **Save**.
 
-## 2. Give callers the `gateway-invoke` scope
+## <span style="color:hsl(359,68%,44%)">2. Give callers the `gateway-invoke` scope</span>
 
 Any client that needs to call this gateway (e.g. `llm-mcp-client`) must have `gateway-invoke`
 added as a **Default** (or at least optional, requested explicitly) client scope:
@@ -45,7 +45,7 @@ curl -s http://localhost:8180/realms/org-mcp/protocol/openid-connect/token \
 
 Confirm `scope` contains `gateway-invoke` and `aud` contains `mcp-gateway`.
 
-## 3. Create a service-account client for the gateway itself
+## <span style="color:hsl(50,68%,32%)">3. Create a service-account client for the gateway itself</span>
 
 The gateway needs its own client identity to call `deployment-service` on its own behalf:
 
@@ -56,7 +56,7 @@ The gateway needs its own client identity to call `deployment-service` on its ow
 3. **Client scopes** tab → add `deployment-invoke` (created in `../llm-mcp/KEYCLOAK_OAUTH2.md`)
    as a **Default** scope, so tokens minted for `llm-mcp-gateway` carry `aud: deployment-service`.
 
-## 4. Wire the URLs
+## <span style="color:hsl(102,68%,32%)">4. Wire the URLs</span>
 
 | URL        | Used by                                                  | Property                                               | Points at                                          |
 |------------|----------------------------------------------------------|--------------------------------------------------------|----------------------------------------------------|
@@ -78,7 +78,7 @@ gateway:
     client-secret: ${MCP_OAUTH2_CLIENT_SECRET:llm-mcp-gateway-secret}
 ```
 
-## 5. Local dev without Keycloak
+## <span style="color:hsl(153,68%,36%)">5. Local dev without Keycloak</span>
 
 Set `GATEWAY_OAUTH2_ENABLED=false` (`gateway.security.oauth2.enabled=false`) to drop the inbound
 resource-server filter chain entirely — a permissive chain takes its place so the app still
@@ -86,7 +86,7 @@ starts. Outbound calls to `deployment-service` will then need `deployment` remov
 `gateway.oauth2-backends`, or `deployment-service` itself run with its own OAuth2 disabled.
 This is also the test-profile default (`src/test/resources/application.yaml`).
 
-## Rolling this out as more backends adopt OAuth2
+## <span style="color:hsl(205,68%,44%)">Rolling this out as more backends adopt OAuth2</span>
 
 Today only `deployment-service` is an OAuth2 resource server; every other backend
 (`ticket`, `notification`, `hr`, `github`, `gmail`, `travel`) still uses the legacy shared

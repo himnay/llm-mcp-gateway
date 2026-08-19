@@ -1,4 +1,4 @@
-# MCP Gateway — `llm-mcp-gateway`
+# <span style="color:hsl(317,68%,44%)">MCP Gateway — `llm-mcp-gateway`</span>
 
 <img src="image/mcp-logo.png" alt="logo" width="80"/>
 
@@ -16,7 +16,7 @@ can jump straight to the implementation.
 
 ---
 
-## Table of contents
+## <span style="color:hsl(330,68%,44%)">Table of contents</span>
 
 1. 🚪 [The problem: why MCP traffic needs its own gateway](#1-the-problem-why-mcp-traffic-needs-its-own-gateway)
 2. 🏗️ [High-level architecture](#2-high-level-architecture)
@@ -43,7 +43,7 @@ can jump straight to the implementation.
 ---
 
 <a id="1-the-problem-why-mcp-traffic-needs-its-own-gateway"></a>
-## 1. 🚪 The problem: why MCP traffic needs its own gateway
+## <span style="color:hsl(343,68%,44%)">1. 🚪 The problem: why MCP traffic needs its own gateway</span>
 
 The Model Context Protocol standardises how an LLM-driven agent discovers and invokes
 *tools* exposed by a server: `tools/list` returns a catalog of tool names, descriptions and
@@ -93,7 +93,7 @@ from whatever `listTools()` returns.
 ---
 
 <a id="2-high-level-architecture"></a>
-## 2. 🏗️ High-level architecture
+## <span style="color:hsl(356,68%,44%)">2. 🏗️ High-level architecture</span>
 
 ```mermaid
 flowchart TB
@@ -167,7 +167,7 @@ tools instead of any raw client-side catalog.
 ---
 
 <a id="3-tool-aggregation-how-the-catalog-is-built"></a>
-## 3. 🔹 Tool aggregation: how the catalog is built
+## <span style="color:hsl(8,68%,44%)">3. 🔹 Tool aggregation: how the catalog is built</span>
 
 `BackendRegistry` (`mcp/BackendRegistry.java`) is the piece that turns "seven independent MCP
 servers" into "one merged tool catalog":
@@ -218,7 +218,7 @@ gateway provides.
 ---
 
 <a id="4-catalog-shaping-overrides-derived-tools-tool-quality-metrics"></a>
-## 4. 📈 Catalog shaping: overrides, derived tools, tool-quality metrics
+## <span style="color:hsl(21,68%,44%)">4. 📈 Catalog shaping: overrides, derived tools, tool-quality metrics</span>
 
 Three further catalog-shaping features exist, each config-driven with no backend changes
 required:
@@ -251,7 +251,7 @@ required:
 ---
 
 <a id="5-request-flow-end-to-end"></a>
-## 5. 🔹 Request flow, end to end
+## <span style="color:hsl(34,68%,44%)">5. 🔹 Request flow, end to end</span>
 
 The sequence below traces one `tools/call` request from `llm-mcp-client` through every guard and
 routing decision described above, assuming OAuth2 is enabled and the target tool is a "write"
@@ -346,9 +346,9 @@ casually:
 ---
 
 <a id="6-security-deep-dive"></a>
-## 6. 🔐 Security deep dive
+## <span style="color:hsl(47,68%,32%)">6. 🔐 Security deep dive</span>
 
-### 6.1 Inbound OAuth2.1 (who may call the gateway)
+### <span style="color:hsl(60,68%,32%)">6.1 Inbound OAuth2.1 (who may call the gateway)</span>
 
 `GatewaySecurityConfig` (`security/GatewaySecurityConfig.java`) protects `/mcp/**`, `/mcp` and
 `/gateway/**` with a Spring Security OAuth2 resource server:
@@ -374,7 +374,7 @@ casually:
 
 </ul>
 
-### 6.2 Outbound authentication (how the gateway calls backends)
+### <span style="color:hsl(73,68%,32%)">6.2 Outbound authentication (how the gateway calls backends)</span>
 
 `McpClientSecurityConfig` (`config/McpClientSecurityConfig.java`) attaches one of two
 `Authorization` schemes per outbound backend connection, selected by connection name via
@@ -397,7 +397,7 @@ correlation id (`X-Request-ID`) from `RequestContext` (a `ThreadLocal` populated
 authorize and audit against the *original* caller, not against the gateway's own service
 identity, and so a trace/log line can be correlated end-to-end across the whole call chain.
 
-### 6.3 `PromptInjectionGuard` — tool-argument injection defence
+### <span style="color:hsl(86,68%,32%)">6.3 `PromptInjectionGuard` — tool-argument injection defence</span>
 
 This is the component most specific to MCP traffic, and worth describing precisely because it's
 easy to over- or under-state what it does.
@@ -470,7 +470,7 @@ never surface as a flagged tool argument. New attack signatures are meant to be 
 configuration, not code, precisely because this is a living, operationally-tuned denylist rather
 than a one-time-complete filter.
 
-### 6.4 `PiiRedactor` — output-side secret/PII scrubbing
+### <span style="color:hsl(98,68%,32%)">6.4 `PiiRedactor` — output-side secret/PII scrubbing</span>
 
 `guardrail/PiiRedactor.java` runs on every tool *result*, right before `OutputSizeCapUtil.cap`
 in `ResilientToolCallback.sanitizeOutput` — defence-in-depth for backends that don't sanitize
@@ -500,7 +500,7 @@ false-positive/negative limits and recommends augmenting with a dedicated PII se
 Comprehend, Azure AI Content Safety, Microsoft Presidio) for regulated workloads rather than
 treating this as sufficient on its own.
 
-### 6.5 `UrlAllowlistValidator` / `McpBackendUrlValidator` — SSRF protection
+### <span style="color:hsl(111,68%,32%)">6.5 `UrlAllowlistValidator` / `McpBackendUrlValidator` — SSRF protection</span>
 
 Two cooperating components validate every backend MCP server URL **at startup, before any
 connection is attempted**:
@@ -525,7 +525,7 @@ injected backend URL (e.g. an env var pointed at `127.0.0.1` or a `10.x` interna
 mistake or by an attacker with environment-level access) from turning an outbound MCP tool call
 into a pivot against internal infrastructure.
 
-### 6.6 Rate limiting
+### <span style="color:hsl(124,68%,32%)">6.6 Rate limiting</span>
 
 `GatewayRateLimiter` (`web/GatewayRateLimiter.java`) is a Redis-backed fixed tumbling-window
 counter, `INCR`-and-`EXPIRE` on a key of `rl:mcp-gateway:{user}:{epochSecond/60}`, keyed per
@@ -555,7 +555,7 @@ case `GatewayRateLimiterProperties`'s `@ConditionalOnProperty` means the bean si
 exist and both call sites treat it as absent (`ObjectProvider.getIfAvailable()` returns `null`,
 skipping the check).
 
-### 6.7 Defence-in-depth summary
+### <span style="color:hsl(137,68%,32%)">6.7 Defence-in-depth summary</span>
 
 Putting §6.1–§6.6 together, a single tool call crosses these independent layers, any one of
 which can reject it without the others needing to also catch the same problem:
@@ -576,7 +576,7 @@ which can reject it without the others needing to also catch the same problem:
 ---
 
 <a id="7-resilience-circuit-breakers-retry-timeouts"></a>
-## 7. 🛡️ Resilience: circuit breakers, retry, timeouts
+## <span style="color:hsl(150,68%,36%)">7. 🛡️ Resilience: circuit breakers, retry, timeouts</span>
 
 `ResilienceConfig` (`config/ResilienceConfig.java`) builds two Resilience4j registries with a
 single shared default configuration each; `CircuitBreakerRegistry.circuitBreaker(name)` /
@@ -630,7 +630,7 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
 ---
 
 <a id="8-observability"></a>
-## 8. 📈 Observability
+## <span style="color:hsl(163,68%,36%)">8. 📈 Observability</span>
 
 <ul>
 
@@ -665,7 +665,7 @@ breaker open/closed transitions per backend are visible in Prometheus/Grafana, n
 ---
 
 <a id="9-admin--management-api"></a>
-## 9. 🌐 Admin / management API
+## <span style="color:hsl(176,68%,36%)">9. 🌐 Admin / management API</span>
 
 Two REST controllers, both mapped under `/api/v1/gateway/**` and protected by the same
 `SCOPE_gateway-invoke` authority as `/mcp/**` (the `GatewaySecurityConfig` security matcher
@@ -692,7 +692,7 @@ tools are reliable) that would otherwise mean querying seven separate services i
 ---
 
 <a id="10-error-handling"></a>
-## 10. ⚠️ Error handling
+## <span style="color:hsl(188,68%,36%)">10. ⚠️ Error handling</span>
 
 `GlobalExceptionHandler` (`web/GlobalExceptionHandler.java`), a `@RestControllerAdvice`, gives
 the admin REST API (not the MCP JSON-RPC endpoint, which has its own JSON-RPC error shape) one
@@ -706,7 +706,7 @@ the real cause logged server-side but not leaked to the caller); `IllegalArgumen
 ---
 
 <a id="11-design-patterns-used-and-where"></a>
-## 11. 🏗️ Design patterns used, and where
+## <span style="color:hsl(201,68%,44%)">11. 🏗️ Design patterns used, and where</span>
 
 | Pattern                         | Where                                                                           | Role                                                                                                                                                                         |
 |---------------------------------|---------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -722,7 +722,7 @@ the real cause logged server-side but not leaked to the caller); `IllegalArgumen
 ---
 
 <a id="12-configuration-reference"></a>
-## 12. 📚 Configuration reference
+## <span style="color:hsl(214,68%,44%)">12. 📚 Configuration reference</span>
 
 | Property / Env Var                                                             | Default                                                                                                     | Description                                                                                                                                                                                    |
 |--------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -766,7 +766,7 @@ gateway needs (it shares the `org-mcp` realm with the rest of the `llm-mcp` flee
 ---
 
 <a id="13-running-it"></a>
-## 13. 🚀 Running it
+## <span style="color:hsl(227,68%,44%)">13. 🚀 Running it</span>
 
 This gateway expects the backend MCP servers from `../llm-mcp` to be reachable (run them via
 `./mvnw spring-boot:run` per service, or `docker compose up` in that repo) and, if
@@ -788,13 +788,13 @@ dedicated non-root `spring:spring` user, and ships its own `HEALTHCHECK` against
 `/actuator/health`.
 
 <a id="14-curl-walkthrough"></a>
-## 14. 🌐 curl walkthrough
+## <span style="color:hsl(240,68%,44%)">14. 🌐 curl walkthrough</span>
 
 > MCP requests are JSON-RPC 2.0 over the Streamable HTTP endpoint `/mcp`. Replace `$TOKEN` with
 > a Keycloak access token carrying the `gateway-invoke` scope (see `KEYCLOAK_SETUP.md`), or omit
 > the header entirely when running with `GATEWAY_OAUTH2_ENABLED=false`.
 
-### List the aggregated tool catalog
+### <span style="color:hsl(253,68%,44%)">List the aggregated tool catalog</span>
 
 ```bash
 curl -s http://localhost:8088/mcp \
@@ -803,7 +803,7 @@ curl -s http://localhost:8088/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-### Call a tool (routed to whichever backend owns it)
+### <span style="color:hsl(266,68%,44%)">Call a tool (routed to whichever backend owns it)</span>
 
 ```bash
 curl -s http://localhost:8088/mcp \
@@ -813,20 +813,20 @@ curl -s http://localhost:8088/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"getRepository","arguments":{"owner":"spring-projects","repo":"spring-boot"}}}'
 ```
 
-### Backend catalog / status (admin endpoint)
+### <span style="color:hsl(278,68%,44%)">Backend catalog / status (admin endpoint)</span>
 
 ```bash
 curl -s http://localhost:8088/api/v1/gateway/backends -H "Authorization: Bearer $TOKEN" | jq
 curl -s http://localhost:8088/api/v1/gateway/backends/github -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-### Tool quality (call count / success rate / p95 latency)
+### <span style="color:hsl(291,68%,44%)">Tool quality (call count / success rate / p95 latency)</span>
 
 ```bash
 curl -s http://localhost:8088/api/v1/gateway/tools/quality -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-### Actuator
+### <span style="color:hsl(304,68%,44%)">Actuator</span>
 
 ```bash
 curl -s http://localhost:8088/actuator/health | jq
