@@ -348,6 +348,7 @@ casually:
 <a id="6-security-deep-dive"></a>
 ## <span style="color:hsl(200,80%,58%)">6. 🔐 Security deep dive</span>
 
+<a id="61-inbound-oauth21-who-may-call-the-gateway"></a>
 ### <span style="color:hsl(337,80%,58%)">6.1 Inbound OAuth2.1 (who may call the gateway)</span>
 
 `GatewaySecurityConfig` (`security/GatewaySecurityConfig.java`) protects `/mcp/**`, `/mcp` and
@@ -374,6 +375,7 @@ casually:
 
 </ul>
 
+<a id="62-outbound-authentication-how-the-gateway-calls-backends"></a>
 ### <span style="color:hsl(115,80%,58%)">6.2 Outbound authentication (how the gateway calls backends)</span>
 
 `McpClientSecurityConfig` (`config/McpClientSecurityConfig.java`) attaches one of two
@@ -397,6 +399,7 @@ correlation id (`X-Request-ID`) from `RequestContext` (a `ThreadLocal` populated
 authorize and audit against the *original* caller, not against the gateway's own service
 identity, and so a trace/log line can be correlated end-to-end across the whole call chain.
 
+<a id="63-promptinjectionguard--tool-argument-injection-defence"></a>
 ### <span style="color:hsl(252,80%,58%)">6.3 `PromptInjectionGuard` — tool-argument injection defence</span>
 
 This is the component most specific to MCP traffic, and worth describing precisely because it's
@@ -470,6 +473,7 @@ never surface as a flagged tool argument. New attack signatures are meant to be 
 configuration, not code, precisely because this is a living, operationally-tuned denylist rather
 than a one-time-complete filter.
 
+<a id="64-piiredactor--output-side-secretpii-scrubbing"></a>
 ### <span style="color:hsl(30,80%,58%)">6.4 `PiiRedactor` — output-side secret/PII scrubbing</span>
 
 `guardrail/PiiRedactor.java` runs on every tool *result*, right before `OutputSizeCapUtil.cap`
@@ -500,6 +504,7 @@ false-positive/negative limits and recommends augmenting with a dedicated PII se
 Comprehend, Azure AI Content Safety, Microsoft Presidio) for regulated workloads rather than
 treating this as sufficient on its own.
 
+<a id="65-urlallowlistvalidator--mcpbackendurlvalidator--ssrf-protection"></a>
 ### <span style="color:hsl(167,80%,58%)">6.5 `UrlAllowlistValidator` / `McpBackendUrlValidator` — SSRF protection</span>
 
 Two cooperating components validate every backend MCP server URL **at startup, before any
@@ -513,8 +518,14 @@ connection is attempted**:
 - For each one, `UrlAllowlistValidator.validate(url, fieldName)`
   (`security/UrlAllowlistValidator.java`) checks: the URL parses as a valid URI; its scheme is
   `http` or `https` only; it has a non-blank host; and, after resolving the host via
-  `InetAddress.getByName`, that the resolved address is **not** loopback, link-local, site-local
-  (RFC 1918 private) or multicast.
+  `InetAddress.getAllByName`, that **every** resolved address is not a wildcard (`0.0.0.0`),
+  link-local (which includes the `169.254.169.254` cloud metadata endpoint) or multicast
+  address.
+- Loopback and private ranges (RFC 1918, IPv6 `fc00::/7`) are rejected only when
+  `gateway.security.ssrf.block-private-networks` (`GATEWAY_SSRF_BLOCK_PRIVATE_NETWORKS`) is
+  `true`. It is off by default because the backends normally run on `localhost` or a private
+  Docker network; when it was always on, the gateway could not start against the documented
+  `localhost:808{1..7}` backends.
 
 </ul>
 
@@ -523,8 +534,11 @@ disallowed address class), which fails application startup — this is a fail-fa
 runtime warning. The intent, per the class Javadoc, is to stop a misconfigured or maliciously
 injected backend URL (e.g. an env var pointed at `127.0.0.1` or a `10.x` internal address by
 mistake or by an attacker with environment-level access) from turning an outbound MCP tool call
-into a pivot against internal infrastructure.
+into a pivot, for example `http://169.254.169.254/` to read cloud credentials. Turn on
+`block-private-networks` when every backend is a public endpoint, so internal addresses such as
+`127.0.0.1` or `10.x` are rejected too.
 
+<a id="66-rate-limiting"></a>
 ### <span style="color:hsl(305,80%,58%)">6.6 Rate limiting</span>
 
 `GatewayRateLimiter` (`web/GatewayRateLimiter.java`) is a Redis-backed fixed tumbling-window
@@ -555,6 +569,7 @@ case `GatewayRateLimiterProperties`'s `@ConditionalOnProperty` means the bean si
 exist and both call sites treat it as absent (`ObjectProvider.getIfAvailable()` returns `null`,
 skipping the check).
 
+<a id="67-defence-in-depth-summary"></a>
 ### <span style="color:hsl(82,80%,58%)">6.7 Defence-in-depth summary</span>
 
 Putting §6.1–§6.6 together, a single tool call crosses these independent layers, any one of
@@ -729,6 +744,7 @@ the real cause logged server-side but not leaked to the caller); `IllegalArgumen
 | `SERVER_PORT`                                                                  | `8088`                                                                                                      | HTTP port                                                                                                                                                                                      |
 | `TICKET_SERVICE_URL` … `TRAVEL_SERVICE_URL`                                    | `http://localhost:808{1..7}`                                                                                | Backend MCP server base URLs (validated for SSRF at startup)                                                                                                                                   |
 | `GATEWAY_OAUTH2_ENABLED` (`gateway.security.oauth2.enabled`)                   | `true`                                                                                                      | Inbound OAuth2 kill switch — `false` for local dev/tests                                                                                                                                       |
+| `GATEWAY_SSRF_BLOCK_PRIVATE_NETWORKS` (`gateway.security.ssrf.block-private-networks`) | `false`                                                                                                     | Also reject loopback/private backend URLs at startup (§6.5); for all-public backends                                                                                                           |
 | `gateway.security.oauth2.required-scope`                                       | `gateway-invoke`                                                                                            | Scope every inbound caller's token must carry                                                                                                                                                  |
 | `gateway.security.oauth2.required-audience`                                    | `mcp-gateway`                                                                                               | Required `aud` claim                                                                                                                                                                           |
 | `MCP_OAUTH2_ISSUER_URI`                                                        | `http://localhost:8180/realms/org-mcp`                                                                      | Keycloak issuer (inbound JWT validation)                                                                                                                                                       |
@@ -767,6 +783,17 @@ gateway needs (it shares the `org-mcp` realm with the rest of the `llm-mcp` flee
 
 <a id="13-running-it"></a>
 ## <span style="color:hsl(325,80%,58%)">13. 🚀 Running it</span>
+
+Prerequisites: JDK 25, and the parent POM `com.org.llm:super-pom` plus the `learning-bom` it
+imports installed locally, because neither is on Maven Central:
+
+```bash
+(cd ~/projects/learning-bom && mvn -N install)
+(cd ~/projects/super-pom && mvn -N install)
+./mvnw verify    # unit tests + context test; no Redis, Keycloak or backends needed
+```
+
+CI (`.github/workflows/ci.yml`) runs the same build on every push.
 
 This gateway expects the backend MCP servers from `../llm-mcp` to be reachable (run them via
 `./mvnw spring-boot:run` per service, or `docker compose up` in that repo) and, if
