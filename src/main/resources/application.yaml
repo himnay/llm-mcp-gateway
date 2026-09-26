@@ -49,6 +49,10 @@ gateway:
       enabled: ${GATEWAY_OAUTH2_ENABLED:true}
       required-scope: gateway-invoke
       required-audience: mcp-gateway
+    ssrf:
+      # Opt-in: also reject loopback/private backend URLs. Off by default because the backends
+      # normally run on localhost (./mvnw spring-boot:run) or a private Docker network.
+      block-private-networks: ${GATEWAY_SSRF_BLOCK_PRIVATE_NETWORKS:false}
   oauth2:
     token-uri: ${MCP_OAUTH2_TOKEN_URI:http://localhost:8180/realms/org-mcp/protocol/openid-connect/token}
     client-id: ${MCP_OAUTH2_CLIENT_ID:llm-mcp-gateway}

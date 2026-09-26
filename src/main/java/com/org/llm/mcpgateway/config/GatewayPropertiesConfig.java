@@ -2,6 +2,7 @@ package com.org.llm.mcpgateway.config;
 
 import com.org.llm.mcpgateway.guardrail.PiiRedactionProperties;
 import com.org.llm.mcpgateway.security.GatewayOAuth2SecurityProperties;
+import com.org.llm.mcpgateway.security.GatewaySsrfProperties;
 import com.org.llm.mcpgateway.security.KeycloakOAuth2Properties;
 import com.org.llm.mcpgateway.web.GatewayRateLimiterProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties({
         GatewayProperties.class,
         GatewayOAuth2SecurityProperties.class,
+        GatewaySsrfProperties.class,
         KeycloakOAuth2Properties.class,
         GatewayRateLimiterProperties.class,
         PiiRedactionProperties.class
