@@ -57,11 +57,12 @@ public class GatewayProperties {
     private int maxToolResultChars = 8000;
 
     /**
-     * Tool-name substrings treated as write/destructive for rate-limiting purposes.
+     * Leading verbs of write/destructive tools ({@code createIssue} → {@code create}): rate-limited
+     * as writes and never retried.
      */
     private List<String> writeToolKeywords = new ArrayList<>(List.of(
-            "apply", "create", "update", "delete", "send", "deploy",
-            "trigger", "rollback", "cancel", "remove", "approve", "assign", "reschedule"));
+            "apply", "create", "update", "delete", "send", "deploy", "execute",
+            "trigger", "rollback", "cancel", "remove", "approve", "assign", "reschedule", "mark"));
 
     /**
      * Description overrides for existing tools, keyed by tool name — lets a workflow-specific

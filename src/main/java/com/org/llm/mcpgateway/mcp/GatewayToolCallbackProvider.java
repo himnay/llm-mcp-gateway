@@ -155,8 +155,25 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
     }
 
     private boolean isWriteTool(String toolName) {
-        String lower = toolName.toLowerCase(Locale.ROOT);
-        return properties.getWriteToolKeywords().stream().anyMatch(lower::contains);
+        String verb = leadingVerb(toolName);
+        return properties.getWriteToolKeywords().stream().anyMatch(k -> k.equalsIgnoreCase(verb));
+    }
+
+    /**
+     * The tool name's leading verb — {@code createIssue} → {@code create}, {@code list_repos} →
+     * {@code list}. Write detection compares whole verbs: substring matching made the read
+     * {@code getDeployments} a "write" because it contains {@code deploy}.
+     */
+    static String leadingVerb(String toolName) {
+        if (toolName == null || toolName.isEmpty()) {
+            return "";
+        }
+        String name = Character.toLowerCase(toolName.charAt(0)) + toolName.substring(1);
+        int end = 0;
+        while (end < name.length() && Character.isLowerCase(name.charAt(end))) {
+            end++;
+        }
+        return name.substring(0, end);
     }
 
     private final class ResilientToolCallback implements ToolCallback {
@@ -217,11 +234,15 @@ public class GatewayToolCallbackProvider implements ToolCallbackProvider {
             }
 
             Callable<String> withCircuitBreaker = CircuitBreaker.decorateCallable(circuitBreaker, action);
-            Callable<String> withRetryAndCircuitBreaker = Retry.decorateCallable(retry, withCircuitBreaker);
+            // Write tools are not retried: a write that reached the backend but whose response was
+            // lost would otherwise be applied twice.
+            Callable<String> withRetryAndCircuitBreaker = write
+                    ? withCircuitBreaker
+                    : Retry.decorateCallable(retry, withCircuitBreaker);
 
             long start = System.currentTimeMillis();
             ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-            Future<String> future = executor.submit(withRetryAndCircuitBreaker);
+            Future<String> future = executor.submit(RequestContext.propagate(withRetryAndCircuitBreaker));
             try {
                 String rawResult = future.get(properties.getToolTimeoutSeconds(), TimeUnit.SECONDS);
                 long durationMs = System.currentTimeMillis() - start;

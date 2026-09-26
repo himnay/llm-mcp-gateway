@@ -4,9 +4,12 @@ import com.org.llm.mcpgateway.exception.GatewayException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -22,7 +25,7 @@ public class KeycloakTokenService {
     private static final long REFRESH_BUFFER_SECONDS = 60;
 
     private final KeycloakOAuth2Properties properties;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient = RestClient.builder().requestFactory(boundedTimeouts()).build();
     private final ReentrantLock lock = new ReentrantLock();
 
     private volatile String cachedToken;
@@ -69,5 +72,13 @@ public class KeycloakTokenService {
         expiresAt = Instant.now().plusSeconds(response.expiresIn());
         log.info("Keycloak OAuth2 token refreshed for gateway — expires in {}s", response.expiresIn());
         return cachedToken;
+    }
+
+    /** Bounded connect/read timeouts — the JDK client's default read timeout is infinite, so a hung upstream would pin the calling thread. */
+    private static JdkClientHttpRequestFactory boundedTimeouts() {
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build());
+        factory.setReadTimeout(Duration.ofSeconds(30));
+        return factory;
     }
 }

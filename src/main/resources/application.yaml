@@ -67,13 +67,14 @@ gateway:
   write-rate-limit-per-minute: 10
   tool-timeout-seconds: 30
   max-tool-result-chars: 8000
-  write-tool-keywords:
+  write-tool-keywords:     # leading verb of a tool name (createIssue -> create)
   - apply
   - create
   - update
   - delete
   - send
   - deploy
+  - execute
   - trigger
   - rollback
   - cancel
@@ -81,6 +82,7 @@ gateway:
   - approve
   - assign
   - reschedule
+  - mark
   # Per-tool description overrides — refine a backend's generic wording for a specific
   # workflow without touching the backend. Example (uncomment and adjust):
   # tool-overrides:
