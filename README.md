@@ -795,7 +795,7 @@ gateway needs (it shares the `org-mcp` realm with the rest of the `llm-mcp` flee
 <a id="13-running-it"></a>
 ## <span style="color:hsl(325,80%,58%)">13. 🚀 Running it</span>
 
-Prerequisites: JDK 25, and the parent POM `com.org.llm:super-pom` plus the `learning-bom` it
+Prerequisites: JDK 27, and the parent POM `com.org.llm:super-pom` plus the `learning-bom` it
 imports installed locally, because neither is on Maven Central:
 
 ```bash
@@ -821,7 +821,7 @@ docker compose up --build
 Grafana: http://localhost:3001 (admin/admin). Prometheus: http://localhost:9091.
 
 The Docker image (see `Dockerfile`) is a multi-stage, layered Spring Boot build
-(`eclipse-temurin:25-jdk` → layertools extract → `eclipse-temurin:25-jre` runtime), runs as a
+(`sapmachine:27-jdk-ubuntu` → `tools` jarmode extract → `sapmachine:27-jre-ubuntu` runtime), runs as a
 dedicated non-root `spring:spring` user, and ships its own `HEALTHCHECK` against
 `/actuator/health`.
 
